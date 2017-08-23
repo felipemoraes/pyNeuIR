@@ -8,29 +8,40 @@ import numpy as np
 
 class DSSM(nn.Module):
 
-    def __init__(self):
+    def __init__(self, gamma, layers_len ):
+        
         super(DSSM, self).__init__()
    
         self.net = nn.Sequential (
-            nn.Linear(500*1, 30*10),
+            nn.Linear(layers_len[0], layers_len[1]),
             nn.Tanh(),
-            nn.Linear(30*10, 300),
+            nn.Linear(layers_len[1], layers_len[2]),
             nn.Tanh(),
-            nn.Linear(300, 128)
+            nn.Linear(layers_len[2], layers_len[3]),
+            nn.Tanh(),
+            nn.Linear(layers_len[3], layers_len[4])
         )
 
-        self.gamma = 0.005
+        self.gamma = gamma
 
-    def forward(self, query, docs):
+    def forward(self, query, pos_doc, neg_docs):
+        
         query = self.forward_once(query)
 
-        r_outputs = [self.cosine(query,self.forward_once(doc)) for doc in docs]
-        
-        soft_exps = [self.gamma*torch.exp(r_output) for r_output in r_outputs]
+        r_pos_output = self.cosine(query, self.forward_once(pos_doc))
 
-        norm = sum(soft_exps)
-        output = torch.exp(soft_exps[0])/norm
-        return output
+        r_neg_outputs = [self.cosine(query,self.forward_once(neg_doc)) for neg_doc in neg_docs]
+
+        soft_exp_pos = self.gamma*torch.exp(r_pos_output)
+
+        soft_exps_neg = [self.gamma*torch.exp(r_neg_output) for r_neg_output in r_neg_outputs]
+
+
+        norm_factor = soft_exp_pos + sum(soft_exps_neg)
+
+        prob_query_given_pos_doc = soft_exp_pos/norm_factor
+        
+        return prob_query_given_pos_doc
 
     def forward_once(self, x):
         output = self.net(x)
