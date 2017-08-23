@@ -31,21 +31,24 @@ class pyNeuIRTest(unittest.TestCase):
 class DSSMTest(pyNeuIRTest):
 
 	def test_output(self):
-		net = DSSM(0.005, [500,200,200,200,128])
-
-		criterion = LogLoss()
+		net = DSSM(0.005, [500,200,200,128])
+		optimizer = torch.optim.SGD(net.parameters(),lr = 0.1, momentum=0.9)
+		loss = LogLoss()
   
-		query = Variable(torch.randn(1, 500*1))
+		query = Variable(torch.randn(100, 500))
 
-		pos_doc = Variable(torch.randn(1, 500*1))
+		docs = [Variable(torch.randn(100, 500)) for _ in range(5)]
 
-		neg_docs = [Variable(torch.randn(1, 500*1)) for _ in range(4)]
+		output = net(query,docs[0],docs[1],docs[2],docs[3],docs[4])
+	
+		self.assertLessEqual(output[0].data.numpy()[0],1)
+		self.assertGreaterEqual(output[0].data.numpy()[0],0)
 
-		output = net(query,pos_doc,neg_docs)
-
-		self.assertLessEqual(output.data.numpy()[0],1)
-		self.assertGreaterEqual(output.data.numpy()[0],0)
-
+		optimizer.zero_grad()
+		loss_log = loss(output)
+		print(loss_log)
+		loss_log.backward()
+		optimizer.step()
 
 if __name__ == '__main__':
     unittest.main()

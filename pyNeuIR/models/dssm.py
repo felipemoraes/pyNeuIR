@@ -3,43 +3,53 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.distance import CosineSimilarity
-import numpy as np
-
+import math
 
 class DSSM(nn.Module):
 
     def __init__(self, gamma, layers_len ):
         
         super(DSSM, self).__init__()
-   
+        x = nn.Linear(layers_len[0], layers_len[1])
+        f1 = nn.Linear(layers_len[1], layers_len[2])
+        f2 = nn.Linear(layers_len[2], layers_len[3])
+        
+        """
+            Initiliaze network weights a = \sqrt(6/(fanin+fanout)), 
+            where fanin = input length and fanout output length
+            Based on: http://dl.acm.org/citation.cfm?id=2505665
+        """
+
+        a = init_value(layers_len[0],layers_len[1])
+        nn.init.uniform(x.weight,(-1)*a, a)
+        a = init_value(layers_len[1],layers_len[2])
+        nn.init.uniform(f1.weight,(-1)*a, a)
+        a = init_value(layers_len[2],layers_len[3])
+        nn.init.uniform(f2.weight,(-1)*a, a)
+
         self.net = nn.Sequential (
-            nn.Linear(layers_len[0], layers_len[1]),
+            x,
             nn.Tanh(),
-            nn.Linear(layers_len[1], layers_len[2]),
+            f1,
             nn.Tanh(),
-            nn.Linear(layers_len[2], layers_len[3]),
-            nn.Tanh(),
-            nn.Linear(layers_len[3], layers_len[4])
+            f2
         )
 
         self.gamma = gamma
 
-    def forward(self, query, pos_doc, neg_docs):
+    def forward(self, query, doc1, doc2, doc3, doc4, doc5):
         
         query = self.forward_once(query)
 
-        r_pos_output = self.cosine(query, self.forward_once(pos_doc))
+        docs = [self.forward_once(doc) for doc in [doc1, doc2, doc3, doc4, doc5]]
 
-        r_neg_outputs = [self.cosine(query,self.forward_once(neg_doc)) for neg_doc in neg_docs]
+        r_outputs = [self.cosine(query,doc) for doc in docs]
 
-        soft_exp_pos = self.gamma*torch.exp(r_pos_output)
+        soft_exps = [self.gamma*torch.exp(r_output) for r_output in r_outputs]
 
-        soft_exps_neg = [self.gamma*torch.exp(r_neg_output) for r_neg_output in r_neg_outputs]
+        norm_factor = sum(soft_exps)
 
-
-        norm_factor = soft_exp_pos + sum(soft_exps_neg)
-
-        prob_query_given_pos_doc = soft_exp_pos/norm_factor
+        prob_query_given_pos_doc = soft_exps[0]/norm_factor
         
         return prob_query_given_pos_doc
 
@@ -53,6 +63,8 @@ class DSSM(nn.Module):
         output = cos(x, y)
         return output
 
+def init_value(fanin, fanout):
+    return math.sqrt(6/(fanin+fanout))
 
 class LogLoss(torch.nn.Module):
     """
@@ -63,7 +75,9 @@ class LogLoss(torch.nn.Module):
         super(LogLoss, self).__init__()
 
     def forward(self, output):
-        return (-1)*torch.log(output)
+        loss = -1* torch.log(output)
+        loss = torch.mean(loss) 
+        return loss
 
 
 def train(self, X):
