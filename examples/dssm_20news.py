@@ -80,8 +80,6 @@ trainset = Fetcher20newsgroupsDataset("train")
 
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True)
 
-
-
 dssm = DSSM(0.005, [trainset.vocab_size,300,300,128])
 criterion = LogLoss()
 optimizer = torch.optim.Adam(dssm.parameters(),lr = 0.0005)
