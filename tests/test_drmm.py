@@ -4,13 +4,18 @@ import sys
 sys.path.append('../pyNeuIR/')
 import unittest
 
-from pyNeuIR.models.drmm import DRMM, FeedForwardNet
-from pyNeuIR.utils.data_preprocess import *
+from pyNeuIR.models.drmm import DRMM_TV, DRMM_IDF, HingeLoss
+from pyNeuIR.utils.pairs_generator import PairsGenerator
+from pyNeuIR.utils.preprocess import process_minibatch
 import torch
+import torch.nn as nn
+import gensim
+from torch.nn import Parameter
+
 
 from torch.autograd import Variable
-import torch
-from torch.autograd import Variable
+import numpy as np
+
 
 
 class pyNeuIRTest(unittest.TestCase):
@@ -30,22 +35,12 @@ class pyNeuIRTest(unittest.TestCase):
 
 class DRMMTest(pyNeuIRTest):
 
-    def test_output(self):
-        queries = [["car", "rent"], ["rent"]]
-        docs = [["car", "rent", "truck", "bump", "injunction",  "runway"],["rent"]]
-        word2id, id2word = construct_vocab(docs,vocab_size=10)
-        embeddings = load_word_embeddings(len(word2id), 5)
 
-        input_histograms = get_histogram_minibatch(queries[0],docs[0], word2id,  embeddings, 5, False)
-        
-        print(input_histograms)
-       
-        #queries_tvs, queries_lens, queries_mask  = get_minibatch(queries,word2id, 10, False)
-        
-        #docs_tvs, docs_lens, docs_mask = get_minibatch(docs,word2id, 20, False)
-        #print(queries_tvs)
-        #model = DRMM(len(word2id), 5)
-        #out = model(queries_tvs, docs_tvs)
+    def test_output(self):	
+        drmm = DRMM_TV(use_gpu=False)
+        queries_tvs = Variable(torch.FloatTensor(np.random.rand(20,5,300)))
+        histograms_l = Variable(torch.FloatTensor(np.random.rand(20,5,30)))
+        print(drmm(histograms_l,queries_tvs))
 
 if __name__ == '__main__':
     unittest.main()
