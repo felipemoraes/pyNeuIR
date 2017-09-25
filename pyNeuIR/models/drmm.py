@@ -12,15 +12,12 @@ class TermGatingNet(nn.Module):
         super(TermGatingNet, self).__init__()
         if use_gpu:
             self.w =  nn.Parameter(torch.FloatTensor(np.random.rand(dim)).cuda())
-
         else:
             self.w = nn.Parameter(torch.FloatTensor(np.random.rand(dim)))
     
-        #if use_gpu:
-        #    self.w = self.w.cuda()
-
     def forward(self, queries_tvs):
         softmax = nn.Softmax()
+        #TODO in the future replace this for Pytorch broadcasting support
         w_view = self.w.unsqueeze(0).expand(queries_tvs.size(0), len(self.w)).unsqueeze(2)
         out = softmax(queries_tvs.bmm(w_view).squeeze(2))
         return out
@@ -55,11 +52,10 @@ class DRMM_TV(nn.Module):
         
         
     def forward(self, histograms, queries_tvs):  
-        out_ffn = self.z(histograms)
+        out_ffn = self.z(histograms).squeeze()
         out_tgn = self.g(queries_tvs)
-
+        #TODO
         matching_score = torch.sum(out_ffn * out_tgn,dim=1)
-        
         return matching_score
 
 class DRMM_IDF(nn.Module):
@@ -72,27 +68,19 @@ class DRMM_IDF(nn.Module):
     def forward(self, histograms, queries_idfs):  
 
         out_ffn = self.z(histograms)
-
-        softmax = nn.Softmax()
-        out_tgn = softmax(queries_idfs)
-
+        #TODO 
         matching_score = torch.sum(out_ffn * out_tgn,dim=1)
-        
         return matching_score
 
 
 class HingeLoss(torch.nn.Module):
     """
         Hinge Loss
+          max(0, 1-x+y)
     """
     def __init__(self):
         super(HingeLoss, self).__init__()
 
     def forward(self, x, y):
-        output = x.mul_(-1)
-        output.add_(y)
-        output.add_(1)
-        output = output.clamp(min=0)
-        output = output.sum()
-        output = output / y.size(0)
-        return output
+        output = 1-x+y
+        return output.clamp(min=0).mean()

@@ -1,8 +1,8 @@
 import sys
 import pyndri
-from preprocess import PreTrainedWordEmbeddings
 import numpy as np
 import json
+from gensim.models.keyedvectors import KeyedVectors
 
 if len(sys.argv) < 5:
     print("error")
@@ -35,6 +35,27 @@ for line in open(sys.argv[4]):
     docs[docno] = int(docid)
 
 embeddings = PreTrainedWordEmbeddings(sys.argv[5])
+
+
+class PreTrainedWordEmbeddings():
+
+    def __init__(self, w2v_path, dim=300):
+        self.w2v_model = KeyedVectors.load_word2vec_format(w2v_path, binary=True)
+        self.dim = dim
+        self.oov = {}
+        
+    def __call__(self, word):
+        if word == "<pad>":
+            return np.zeros(self.dim)
+        if word in self.w2v_model.wv.vocab:
+            return self.w2v_model.wv[word]
+        elif word in self.oov:
+            return self.oov[word]
+        else:
+            # It deals with OOV like described here:
+            # http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
+            self.oov[word] = np.random.rand(self.dim)
+            return self.oov[word]
 
 def matching_histogram_mapping(query_tvs, doc_tvs, num_bins):
     # Local interaction
