@@ -3,6 +3,8 @@ import numpy as np
 from gensim.models.keyedvectors import KeyedVectors
 from torch.autograd import Variable
 import torch 
+import time
+
 
 def padding(values, maxlen):
     if len(values) < maxlen:
@@ -37,16 +39,16 @@ def process_minibatch(histograms_h, histograms_l, queries, use_gpu=True):
         histograms_l_c.append([])
         histograms_l_c[i].extend(histograms) 
         histograms_l_c[i].extend([np.zeros(30)] *( max_len - len(histograms)))
-
     histograms_h_c = Variable(torch.FloatTensor(histograms_h_c))
     histograms_l_c = Variable(torch.FloatTensor(histograms_l_c))
+    time_send_gpu = time.time()
     queries_tvs = Variable(torch.FloatTensor(np.array(queries_tvs)))
     
     if use_gpu:
         histograms_h_c = histograms_h_c.cuda()
         histograms_l_c = histograms_l_c.cuda()
         queries_tvs = queries_tvs.cuda()
-    return histograms_h_c, histograms_l_c, queries_tvs
+    return histograms_h_c, histograms_l_c, queries_tvs, (time.time() - time_send_gpu)
 
 
 def load_histograms(histogram_file):

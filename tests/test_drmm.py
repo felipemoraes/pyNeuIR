@@ -4,9 +4,9 @@ import sys
 sys.path.append('../pyNeuIR/')
 import unittest
 
-from pyNeuIR.models.drmm import DRMM_TV, DRMM_IDF, HingeLoss
-from pyNeuIR.utils.pairs_generator import PairsGenerator
-from pyNeuIR.utils.preprocess import process_minibatch
+from pyNeuIR.models.drmm import DRMM_TV, DRMM_IDF,FeedForwardMatchingNet, HingeLoss
+#from pyNeuIR.utils.pairs_generator import PairsGenerator
+#from pyNeuIR.utils.preprocess import process_minibatch
 import torch
 import torch.nn as nn
 import gensim
@@ -36,11 +36,13 @@ class pyNeuIRTest(unittest.TestCase):
 class DRMMTest(pyNeuIRTest):
 
 
-    def test_output(self):	
-        drmm = DRMM_TV(use_gpu=False)
-        queries_tvs = Variable(torch.FloatTensor(np.random.rand(20,5,300)))
-        histograms_l = Variable(torch.FloatTensor(np.random.rand(20,5,30)))
-        print(drmm(histograms_l,queries_tvs))
+    def test_output(self):  
+        drmm = DRMM_TV()
+        feed = FeedForwardMatchingNet()
+        queries_tvs = Variable(torch.FloatTensor(np.random.rand(20,5,300))).cuda()
+        histograms_l = Variable(torch.FloatTensor(np.random.rand(20,5,5,5,5,5,30))).cuda()
+        print(feed(histograms_l))
+        #print(drmm(histograms_l,queries_tvs))
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,10 +10,14 @@ class TermGatingNet(nn.Module):
     
     def __init__(self, use_gpu=True, dim=300):
         super(TermGatingNet, self).__init__()
-        self.w = nn.Parameter(torch.FloatTensor(np.random.rand(dim)))
-    
         if use_gpu:
-            self.w = self.w.cuda()
+            self.w =  nn.Parameter(torch.FloatTensor(np.random.rand(dim)).cuda())
+
+        else:
+            self.w = nn.Parameter(torch.FloatTensor(np.random.rand(dim)))
+    
+        #if use_gpu:
+        #    self.w = self.w.cuda()
 
     def forward(self, queries_tvs):
         softmax = nn.Softmax()
@@ -45,6 +49,9 @@ class DRMM_TV(nn.Module):
         self.z = FeedForwardMatchingNet()
         # term gating network
         self.g = TermGatingNet(use_gpu)
+        if use_gpu:
+            self.z = self.z.cuda()
+            self.g = self.g.cuda()
         
         
     def forward(self, histograms, queries_tvs):  
