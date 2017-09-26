@@ -1,6 +1,6 @@
 import sys
 import pyndri
-
+import math
 def load_topics(topics_file, field_type):
     lines = [line.strip() for line in open(topics_file) if len(line.strip().replace(" ",""))> 0]
     topics = []
@@ -78,19 +78,20 @@ with pyndri.open(sys.argv[2]) as index:
     id2tf = index.get_term_frequencies()
     f_id = open("queries_terms_id.txt", "w")
     f_t = open("queries_terms.txt", "w")
-    term_stats = {}
+    f_idfs = open("/Developer/data/idfs.txt", "w")
+
+    collection_size = float(index.document_count())
     for topic in topics:
         tid, query = topic
-        query = escape(query.lower())
-        tokens = [token2id[token] if token in token2id else 0 for token in pyndri.tokenize(query)]
-        for token in tokens:
-            if token in token2id:
-                term_stats[token2id[token]] = id2tf[token]
-        terms = [token for token in pyndri.tokenize(query)]
+        query_terms = pyndri.tokenize(escape(query.lower()))
+        tokens = [token2id[token] if token in token2id else 0 for token in query_terms]
+        idfs = [math.log(collection_size/id2tf[token]) if token > 0 else 0 for token in tokens]
+        f_idfs.write(tid +"\t" + " ".join(map(str,idfs)) + "\n")
         f_id.write(tid +"\t" + " ".join(map(str,tokens)) + "\n")
-        f_t.write(tid +"\t" + " ".join(map(str,terms)) + "\n")
+        f_t.write(tid +"\t" + " ".join(map(str,query_terms)) + "\n")
     f_id.close()
     f_t.close()
+    f_idfs.close()
     f = open("docs_terms.txt", "w")
     for document_id in range(index.document_base(), index.maximum_document()):
         docno, doc = index.document(document_id)
@@ -98,10 +99,3 @@ with pyndri.open(sys.argv[2]) as index:
             f.write("{0}\t{1}\n".format(docno , document_id))
     f.close()
     
-    f = open("term_stats.txt", "w")
-    for term in term_stats:
-        f.write("{} {}\n".format(term, term_stats[term]))
-
-    f.close()
-
-

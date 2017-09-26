@@ -4,71 +4,43 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import numpy as np
+import torch.nn.init as weight_init
+torch.manual_seed(222)
 
+use_cuda = torch.cuda.device_count() > 0
 
-class TermGatingNet(nn.Module):
-    
-    def __init__(self, use_gpu=True, dim=300):
-        super(TermGatingNet, self).__init__()
-        if use_gpu:
-            self.w =  nn.Parameter(torch.FloatTensor(np.random.rand(dim)).cuda())
-        else:
-            self.w = nn.Parameter(torch.FloatTensor(np.random.rand(dim)))
-    
-    def forward(self, queries_tvs):
-        softmax = nn.Softmax()
-        #TODO in the future replace this for Pytorch broadcasting support
-        w_view = self.w.unsqueeze(0).expand(queries_tvs.size(0), len(self.w)).unsqueeze(2)
-        out = softmax(queries_tvs.bmm(w_view).squeeze(2))
-        return out
+if use_cuda:
+    torch.cuda.manual_seed(222)
 
-class FeedForwardMatchingNet(nn.Module):
-    
-    def __init__(self):
-        super(FeedForwardMatchingNet, self).__init__()
-        f1 = nn.Linear(30, 5)
-        f2 = nn.Linear(5, 1)
-        self.net = nn.Sequential (
-            f1,
-            nn.Tanh(),
-            f2,
-        )
+class DRMM(nn.Module):
 
-    def forward(self, input):
-        out = self.net(input)
-        return out
-
-class DRMM_TV(nn.Module):
-
-    def __init__(self, use_gpu=True):
-        super(DRMM_TV, self).__init__()
+    def __init__(self, dim_term_gating, use_cuda=True):
+        super(DRMM, self).__init__()
+        
         # feedfoward matching network
-        self.z = FeedForwardMatchingNet()
+        self.z1 = nn.Linear(30, 5)
+        self.z2 = nn.Linear(5, 1)
+        weight_init.xavier_normal(self.z1.weight, gain=weight_init.calculate_gain('tanh'))
+        weight_init.xavier_normal(self.z2.weight, gain=weight_init.calculate_gain('tanh'))
         # term gating network
-        self.g = TermGatingNet(use_gpu)
-        if use_gpu:
-            self.z = self.z.cuda()
-            self.g = self.g.cuda()
+        weights = torch.FloatTensor(dim_term_gating)
+        weight_init.uniform(weights, -0.01,0.01)
+        if use_cuda:
+            self.w =  nn.Parameter(weights).cuda()
+        else:
+            self.w = nn.Parameter(weights)
         
         
     def forward(self, histograms, queries_tvs):  
-        out_ffn = self.z(histograms).squeeze()
-        out_tgn = self.g(queries_tvs)
-        #TODO
-        matching_score = torch.sum(out_ffn * out_tgn,dim=1)
-        return matching_score
 
-class DRMM_IDF(nn.Module):
+        out_ffn = self.z1(histograms)
+        out_ffn = F.tanh(out_ffn)
+        out_ffn = self.z2(out_ffn).squeeze()
 
-    def __init__(self):
-        super(DRMM_IDF, self).__init__()
-        # feedfoward matching network
-        self.z = FeedForwardMatchingNet()
-        
-    def forward(self, histograms, queries_idfs):  
+        softmax = nn.Softmax()
+        w_view = self.w.unsqueeze(0).expand(queries_tvs.size(0), len(self.w)).unsqueeze(2)
+        out_tgn = softmax(queries_tvs.bmm(w_view).squeeze(2))
 
-        out_ffn = self.z(histograms)
-        #TODO 
         matching_score = torch.sum(out_ffn * out_tgn,dim=1)
         return matching_score
 

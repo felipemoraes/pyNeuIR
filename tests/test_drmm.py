@@ -4,9 +4,8 @@ import sys
 sys.path.append('../pyNeuIR/')
 import unittest
 
-from pyNeuIR.models.drmm import DRMM_TV, DRMM_IDF,FeedForwardMatchingNet, HingeLoss, TermGatingNet
-#from pyNeuIR.utils.pairs_generator import PairsGenerator
-#from pyNeuIR.utils.preprocess import process_minibatch
+from pyNeuIR.models.drmm import DRMM, HingeLoss
+from pyNeuIR.utils.preprocess import load_idfs
 import torch
 import torch.nn as nn
 import gensim
@@ -38,15 +37,15 @@ class DRMMTest(pyNeuIRTest):
 
     def test_output(self):  
         torch.manual_seed(222)
-        drmm = DRMM_TV(False)
-        feed = FeedForwardMatchingNet()
-        np.random.seed(222)
-        queries_tvs = Variable(torch.FloatTensor(np.random.rand(20,2,300)))
-        histograms_l = Variable(torch.FloatTensor(np.random.rand(20,2,30)))
-        print(drmm(histograms_l,queries_tvs))
-        term_gating = TermGatingNet(False)
-        print(term_gating(queries_tvs))
+        drmm = DRMM(1,False)
 
+        np.random.seed(222)
+        queries_idfs = Variable(torch.FloatTensor(np.random.rand(20,2,1)))
+        histograms_l = Variable(torch.FloatTensor(np.random.rand(20,2,30)))
+        print(drmm(histograms_l,queries_idfs))
+
+        #
+        # idfs = load_idfs("/Users/felipemoraes/Developer/data/idfs.txt",5)
 if __name__ == '__main__':
     unittest.main()
 

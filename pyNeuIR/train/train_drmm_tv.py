@@ -8,13 +8,17 @@ sys.path.append('../../pyNeuIR/')
 
 from pyNeuIR.utils.preprocess import pad_sequences, load_embeddings, load_histograms
 from pyNeuIR.utils.pairs_generator import PairsGenerator
-from pyNeuIR.models.drmm import DRMM_TV, HingeLoss
+from pyNeuIR.models.drmm import DRMM, HingeLoss
 from pyNeuIR.configs.drmm_config import config
 import torch
 from torch.autograd import Variable
+torch.manual_seed(222)
 
 use_cuda = torch.cuda.device_count() > 0
         
+if use_cuda:
+    torch.cuda.manual_seed(222)
+
 def get_model_size(model):
     return sum([ p.size(0) if len(p.size()) == 1 else p.size(0)*p.size(1) for p in model.parameters()])
 
@@ -22,10 +26,10 @@ def train(trainloader, validationloader, histograms, embeddings, save_dir, exper
     
     global logger
     
-    drmm = DRMM_TV(use_cuda)
+    drmm = DRMM(300,use_cuda)
     criterion = HingeLoss()
 
-    optimizer = torch.optim.Adam(drmm.parameters(),lr = 0.0001)
+    optimizer = torch.optim.Adagrad(drmm.parameters(),lr = 0.001)
     
     logger.info("Start training {} experiment with {} parameters".format(experiment_name, get_model_size(drmm)))
 
@@ -106,9 +110,12 @@ def main():
     histogram_file = sys.argv[3]
     save_dir = sys.argv[4]
     experiment_name = sys.argv[5]
-
     logging.basicConfig(filename=experiment_name + ".log",level=logging.INFO,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
+    logging.basicConfig(level=logging.INFO,
+        format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+
     global logger
     logger = logging.getLogger(experiment_name)
     
@@ -121,10 +128,10 @@ def main():
     embeddings = load_embeddings(config["queries_tv"],5)
 
     logger.info("Loading training pairs generator.")
-    train_generator = PairsGenerator(config["pairs_file"],train_file, sample=1000000)
+    train_generator = PairsGenerator(config["pairs_file"],train_file, sample=100000)
     
     logger.info("Loading validation pairs generator.")
-    validation_generator = PairsGenerator(config["pairs_file"],validation_file, sample=200000)
+    validation_generator = PairsGenerator(config["pairs_file"],validation_file, sample=1000)
 
     trainloader = torch.utils.data.DataLoader(train_generator, batch_size=20, shuffle=True)
     validationloader = torch.utils.data.DataLoader(validation_generator, batch_size=len(validation_generator))
