@@ -26,7 +26,9 @@ def train(trainloader, validationloader, histograms, embeddings, save_dir, exper
     
     global logger
     
-    drmm = DRMM(300,use_cuda)
+    drmm = DRMM(300)
+    if use_cuda:
+        drmm = drmm.cuda()
     criterion = HingeLoss()
 
     optimizer = torch.optim.Adagrad(drmm.parameters(),lr = 0.001)

@@ -14,7 +14,7 @@ if use_cuda:
 
 class DRMM(nn.Module):
 
-    def __init__(self, dim_term_gating, use_cuda=True):
+    def __init__(self, dim_term_gating):
         super(DRMM, self).__init__()
         
         # feedfoward matching network
