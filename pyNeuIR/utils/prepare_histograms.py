@@ -2,115 +2,133 @@ import sys
 import pyndri
 import numpy as np
 import json
-from gensim.models.keyedvectors import KeyedVectors
+import glob
 
-if len(sys.argv) < 5:
-    print("error")
-    sys.exit(0)
+from input_utils import *
 
-def load_qrels(qrels_path):
-    qrels = {}
-    for line in open(qrels_path):
-        qid, _, docno, label = line.strip().split()
-        qid = int(qid)
-        if not qid in qrels:
-            qrels[qid] = []
-        qrels[qid].append(docno)
-    return qrels
+sys.path.append('../../pyNeuIR/')
+
+from pyNeuIR.configs.histograms_config import config
 
 
-qrels = load_qrels(sys.argv[1])
+def generate_queries_tvs(index_path, topics, embeddings):
 
-topics = {}
-for line in open(sys.argv[3]):
-    tid, terms = line.strip().split("\t")
-    terms = [ int(x) for x in terms.split()]
-    tid = int(tid)
-    topics[tid] = terms
+    f_qtvs = open("queries_tvs.txt", "w")
+    f_idfs = open("queries_idfs.txt", "w")
+    queries_tvs = {}
 
+    with pyndri.open(index_path) as index:
+        token2id, id2token, id2df = index.get_dictionary()
+        id2tf = index.get_term_frequencies()
 
-docs = {}
-for line in open(sys.argv[4]):
-    docno, docid = line.strip().split("\t")
-    docs[docno] = int(docid)
-
-embeddings = PreTrainedWordEmbeddings(sys.argv[5])
-
-
-class PreTrainedWordEmbeddings():
-
-    def __init__(self, w2v_path, dim=300):
-        self.w2v_model = KeyedVectors.load_word2vec_format(w2v_path, binary=True)
-        self.dim = dim
-        self.oov = {}
-        
-    def __call__(self, word):
-        if word == "<pad>":
-            return np.zeros(self.dim)
-        if word in self.w2v_model.wv.vocab:
-            return self.w2v_model.wv[word]
-        elif word in self.oov:
-            return self.oov[word]
-        else:
-            # It deals with OOV like described here:
-            # http://emnlp2014.org/papers/pdf/EMNLP2014181.pdf
-            self.oov[word] = np.random.rand(self.dim)
-            return self.oov[word]
-
-def matching_histogram_mapping(query_tvs, doc_tvs, num_bins):
-    # Local interaction
-    histograms = [histogram_mapping([np.cos(query_tv,doc_tv) for doc_tv in doc_tvs],num_bins) for query_tv in query_tvs]
-    return histograms
-
-def histogram_mapping(values, num_bins):
-    count = [0.0]*num_bins
-    for value in values:
-        bin_idx = int(((value.data[0]+1)*(num_bins-1)) / 2)
-        count[bin_idx] += 1
-    return count
-
-def nh(values):
-    s = np.sum(values)
-    if (s > 0):
-        return [v/s for v in values]
-    return values
-
-def lnh(values):
-    return [np.log(v) if v > 0 else 0 for v in values]
-
-
-with pyndri.open(sys.argv[2]) as index:
-    token2id, id2token, id2df = index.get_dictionary()
-
-    f_qtvs = open("queries_tv.txt", "w")
-    f_ch = open("histograms_ch.txt", "w")
-
-    f_nh = open("histograms_nh.txt", "w")
-
-    f_lch = open("histograms_lch.txt", "w")
-    c = 0
-    for topic in qrels:
-        query_tvs = [embeddings(id2token[w]) for w in topics[topic] if w > 0]
-        f_qtvs.write("{} {}\n".format(topic, json.dumps([q.tolist() for q in query_tvs]) ))
-        for docno in qrels[topic]:
-            document_id = docs[docno]
-            docno, doc = index.document(document_id)
-            doc_tvs = [embeddings(id2token[w]) for w in doc if w > 0 ]          
-            histograms = matching_histogram_mapping(query_tvs, doc_tvs, 30)
-            f_ch.write("{} {} ".format(topic,docno))
-            f_nh.write("{} {} ".format(topic,docno))
-            f_lch.write("{} {} ".format(topic,docno))
-            for histogram in histograms[:-1]:
-                f_ch.write(" ".join(map(str,histogram)) + "\t")
-                f_nh.write(" ".join(map(str,nh(histogram))) + "\t")
-                f_lch.write(" ".join(map(str,lnh(histogram))) + "\t")
-            f_ch.write(" ".join(map(str,histogram)) + "\n")
-            f_nh.write(" ".join(map(str,nh(histogram)))+ "\n")
-            f_lch.write(" ".join(map(str,lnh(histogram)))+ "\n")
-        c += 1
-        print("Processed {} queries.".format(c))
+        collection_size = float(index.document_count())
+        for topic in topics:
+            qid, query = topic
+            query_terms = pyndri.tokenize(escape(query.lower()))
+            query_tvs = [embeddings(w) for w in query_terms if w in token2id]
+            queries_tvs[qid] = query_tvs
             
-    f_ch.close()
-    f_nh.close()
-    f_lch.close()
-    f_qtvs.close()
+            tokens = [token2id[term] for term in query_terms if term in token2id]
+            idfs = [np.log(collection_size/id2tf[token]) if token > 0 else 0 for token in tokens]
+
+            f_qtvs.write("{} {}\n".format(qid, json.dumps([tv.tolist() for tv in query_tvs]) ))
+            f_idfs.write("{} {}\n".format(qid, json.dumps(idfs) ))
+    return queries_tvs
+
+def docids_from_index(index_path, docnos):
+    docids = {}
+    with pyndri.open(index_path) as index:
+        for docid in range(index.document_base(), index.maximum_document()):
+            docno, doc = index.document(docid)
+            if docno in docnos:
+                docids[docno] = docid
+    return docids
+
+def generate_doc_tvs(index, docids, embeddings):
+    docs_tvs = {}
+    with pyndri.open(index_path) as index:
+        token2id, id2token, id2df = index.get_dictionary()
+        for docno in docids:
+            docno, doc = index.document(docids[docno])
+            doc_tvs = [embeddings(id2token[w]) for w in doc if w > 0]
+            docs_tvs[docno] = doc_tvs
+    return docs_tvs
+
+
+def print_histograms(index_path, queries_tvs, docnos, queries_docs, embeddings, name="histogram"):
+    
+    f_ch = open(name + "_ch.txt", "w")
+    f_nh = open(name + "_nh.txt", "w")
+    f_lch = open(name + "_lch.txt", "w")
+    
+    docids = docids_from_index(index_path, docnos)
+    count = 0
+    for qid in queries_docs:
+        count += 1
+        docids_qid = {}
+        query_tvs = queries_tvs[qid]
+
+        for label in queries_docs[qid]:
+            for docno in queries_docs[qid][label]:
+                docids_qid[docno] = docids[docno] 
+        
+        with pyndri.open(index_path) as index:
+            token2id, id2token, id2df = index.get_dictionary()
+            for docno in docids_qid:
+                docno, doc = index.document(docids[docno])
+                doc_tvs = [embeddings(id2token[w]) for w in doc if w > 0]
+            
+                
+    
+                histograms = matching_histogram_mapping(query_tvs, doc_tvs, 30)
+                
+                f_ch.write("{} {} {}\n".format(qid,docno, json.dumps(histograms)))
+                f_nh.write("{} {} {}\n".format(qid,docno, json.dumps([nh(histogram) for histogram in histograms ] )))
+                f_lch.write("{} {} {}\n".format(qid,docno,json.dumps([lnh(histogram) for histogram in histograms ])))
+        
+        if count % 10 == 0:
+            print("Processed {} queries.".format(count))
+def load_test(test_file):
+    run = {}
+    docnos = set()
+    # 684 Q0 LA102589-0032 1 -5.08734 indri
+    for line in open(test_file):
+        qid, _, docno, rank, score, tag = line.strip().split()
+        if not qid in run:
+            run[qid] = {}
+            run[qid]["0"] = {}
+        run[qid]["0"][docno] = 1
+        docnos.add(docno)
+    return run, docnos
+    
+def main(argv):
+
+    if len(config) < 6:
+        print("Invalid configuration file.")
+        sys.exit(0)
+
+    print("Loading topics")
+    topics = load_topics(config["topics"], config["type"])
+    print("Loading qrels")
+    qrels, docnos = load_qrels(config["qrels"])
+    print("Loading embeddings")
+    
+    embeddings = PreTrainedWordEmbeddings(config["embeddings"])
+
+    print("Generating queries tvs")
+    queries_tvs = generate_queries_tvs(config["index"], topics, embeddings)
+
+    print("Printing histograms")
+    print_histograms(config["index"], queries_tvs, docnos, qrels, embeddings)
+
+    for test_file in glob.glob(config["tests_fold"]+"*"):
+        file_name = test_file.split("/")[-1]
+        run, docnos = load_test(test_file)
+        print("Generating histograms for file {}.".format(file_name))
+        print_histograms(config["index"], queries_tvs, docnos, run, embeddings, file_name)
+    
+    print("Generating query doc pairs for training")
+    query_doc_pairs = generate_query_doc_pairs(qrels)
+
+if __name__=='__main__':
+    main(sys.argv)

@@ -23,13 +23,10 @@ class DRMM(nn.Module):
         weight_init.xavier_normal(self.z1.weight, gain=weight_init.calculate_gain('tanh'))
         weight_init.xavier_normal(self.z2.weight, gain=weight_init.calculate_gain('tanh'))
         # term gating network
-        weights = torch.FloatTensor(dim_term_gating)
-        weight_init.uniform(weights, -0.01,0.01)
-        if use_cuda:
-            self.w =  nn.Parameter(weights).cuda()
-        else:
-            self.w = nn.Parameter(weights)
-        
+
+        self.g = nn.Linear(dim_term_gating,1)
+        weight_init.xavier_normal(self.g.weight, gain=weight_init.calculate_gain('linear'))
+
         
     def forward(self, histograms, queries_tvs):  
 
@@ -37,9 +34,7 @@ class DRMM(nn.Module):
         out_ffn = F.tanh(out_ffn)
         out_ffn = self.z2(out_ffn).squeeze()
 
-        softmax = nn.Softmax()
-        w_view = self.w.unsqueeze(0).expand(queries_tvs.size(0), len(self.w)).unsqueeze(2)
-        out_tgn = softmax(queries_tvs.bmm(w_view).squeeze(2))
+        out_tgn = F.softmax(self.g(queries_tvs).squeeze())
 
         matching_score = torch.sum(out_ffn * out_tgn,dim=1)
         return matching_score

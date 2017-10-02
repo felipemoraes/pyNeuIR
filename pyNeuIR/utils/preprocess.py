@@ -17,7 +17,8 @@ def load_histograms(histogram_file, max_len):
     histograms = {}
     for line in open(histogram_file):
         qid, docno, hs = line.split(" ", 2)
-        hs = pad(torch.FloatTensor(np.array([[float(v) for v in histogram.split()] for histogram in hs.split("\t")])),max_len)
+        hs = json.loads(hs)
+        hs = pad(torch.FloatTensor(np.array(hs),max_len))
         if not qid in histograms:
             histograms[qid] = {}
         histograms[qid][docno] = hs
