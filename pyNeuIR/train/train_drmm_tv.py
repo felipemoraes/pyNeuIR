@@ -128,10 +128,10 @@ def main():
     embeddings = load_embeddings(config["queries_tv"],5)
 
     logger.info("Loading training pairs generator.")
-    train_generator = PairsGenerator(config["pairs_file"],train_file, sample=100000)
+    train_generator = PairsGenerator(config["pairs_file"],train_file)
     
     logger.info("Loading validation pairs generator.")
-    validation_generator = PairsGenerator(config["pairs_file"],validation_file, sample=1000)
+    validation_generator = PairsGenerator(config["pairs_file"],validation_file)
 
     trainloader = torch.utils.data.DataLoader(train_generator, batch_size=20, shuffle=True)
     validationloader = torch.utils.data.DataLoader(validation_generator, batch_size=len(validation_generator))

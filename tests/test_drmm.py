@@ -15,6 +15,8 @@ from torch.nn import Parameter
 from torch.autograd import Variable
 import numpy as np
 
+def get_model_size(model):
+    return sum([ p.size(0) if len(p.size()) == 1 else p.size(0)*p.size(1) for p in model.parameters()])
 
 
 class pyNeuIRTest(unittest.TestCase):
@@ -42,7 +44,8 @@ class DRMMTest(pyNeuIRTest):
         np.random.seed(222)
         queries_idfs = Variable(torch.FloatTensor(np.random.rand(20,2,1)))
         histograms_l = Variable(torch.FloatTensor(np.random.rand(20,2,30)))
-        print(drmm(histograms_l,queries_idfs))
+        print(get_model_size(drmm))
+        #print(drmm(histograms_l,queries_idfs))
 
         #
         # idfs = load_idfs("/Users/felipemoraes/Developer/data/idfs.txt",5)
