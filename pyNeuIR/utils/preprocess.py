@@ -33,7 +33,8 @@ def load_embeddings(queries_tvs_file, max_len):
 
 
 def load_idfs(queries_idfs_file, max_len):
-    idfs = {line.split("\t")[0]: [float(v) for v in line.strip().split("\t")[1].split()] for line in open(queries_idfs_file)}
+
+    idfs = {line.split(" ", 1)[0]:  json.loads(line.strip().split(" ",1)[1]) for line in open(queries_idfs_file)}
     for t in idfs:
         idfs[t] = pad(torch.FloatTensor(np.array(idfs[t])),max_len).unsqueeze(1)
     return idfs
