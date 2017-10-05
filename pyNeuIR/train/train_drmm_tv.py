@@ -35,7 +35,7 @@ def train(trainloader, validationloader, histograms, embeddings, save_dir, exper
     
     logger.info("Start training {} experiment with {} parameters".format(experiment_name, get_model_size(drmm)))
 
-    for epoch in range(30):
+    for epoch in range(100):
         train_loss = []
         time_start = time.time()
         for i, data in enumerate(trainloader, 0):
@@ -66,8 +66,8 @@ def train(trainloader, validationloader, histograms, embeddings, save_dir, exper
             optimizer.step()	
         time_training = time.time() - time_start
         validation_loss = validate(drmm, criterion, validationloader, histograms, embeddings)
-        logger.info('Epoch : {}\tTrainingLoss: {}\tValidationLoss: {}\tTime: {}'.format(epoch, np.mean(train_loss).numpy()[0],
-                validation_loss.numpy()[0],time_training))
+        logger.info('Epoch : {}\tTrainingLoss: {}\tValidationLoss: {}\tTime: {}'.format(epoch, np.mean(train_loss).cpu().numpy()[0],
+                validation_loss.cpu().numpy()[0],time_training))
         
         torch.save(
             drmm.state_dict(),
@@ -113,9 +113,6 @@ def main():
     save_dir = sys.argv[4]
     experiment_name = sys.argv[5]
     logging.basicConfig(filename=experiment_name + ".log",level=logging.INFO,
-        format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
-
-    logging.basicConfig(level=logging.INFO,
         format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 
     global logger

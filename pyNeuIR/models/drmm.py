@@ -14,7 +14,7 @@ if use_cuda:
 
 class DRMM(nn.Module):
 
-    def __init__(self, dim_term_gating):
+    def __init__(self, dim_term_gating, use_cuda=True):
         super(DRMM, self).__init__()
         
         # feedfoward matching network
@@ -24,7 +24,7 @@ class DRMM(nn.Module):
         weight_init.xavier_normal(self.z2.weight, gain=weight_init.calculate_gain('tanh'))
         # term gating network
 
-        self.g = nn.Linear(dim_term_gating,1)
+        self.g = nn.Linear(dim_term_gating,1, bias=False)
         weight_init.xavier_normal(self.g.weight, gain=weight_init.calculate_gain('linear'))
 
         
@@ -32,7 +32,8 @@ class DRMM(nn.Module):
 
         out_ffn = self.z1(histograms)
         out_ffn = F.tanh(out_ffn)
-        out_ffn = self.z2(out_ffn).squeeze()
+        out_ffn = self.z2(out_ffn)
+        out_ffn = F.tanh(out_ffn).squeeze()
 
         out_tgn = F.softmax(self.g(queries_tvs).squeeze())
 
