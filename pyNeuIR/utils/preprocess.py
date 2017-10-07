@@ -39,15 +39,13 @@ def load_idfs(queries_idfs_file, max_len):
         idfs[t] = pad(torch.FloatTensor(np.array(idfs[t])),max_len).unsqueeze(1)
     return idfs
 
-def generate_binary_matrix(features, n_rows, n_cols):
-    features = json.loads(features)
+def to_binary_matrix(features, n_rows, n_cols):
     binary_matrix = np.zeros((n_rows,n_rows))
     for f in features:
         binary_matrix[f[0], f[1]] = 1.0
     return binary_matrix
 
-def generate_freq_matrix(features, n_rows, n_cols):
-    features = json.loads(features)
+def to_freq_matrix(features, n_rows, n_cols):
     freq_matrix = np.zeros((n_rows,n_rows))
     for f in features:
         freq_matrix[f[0], f[1]] = f[2]
@@ -63,7 +61,7 @@ def load_features_local(features_local_file, n_rows, n_cols, train_file, validat
         if qid in  queries:
             if not qid in features_local:
                 features_local[qid] = {}
-            features_local[qid][docno] = torch.Tensor(generate_binary_matrix(features, n_rows, n_cols))
+            features_local[qid][docno] = json.loads(features)
     return features_local
 
 def load_features_distrib_query(features_distrib_file, n_rows, n_cols, train_file, validation_file):
@@ -75,8 +73,8 @@ def load_features_distrib_query(features_distrib_file, n_rows, n_cols, train_fil
     for line in open(features_distrib_file):
         qid, features = line.split(" ", 1)
         if qid in  queries:
-            features_dist[qid] = torch.Tensor(generate_freq_matrix(features, n_rows, n_cols))
-            break
+            features_dist[qid] = json.loads(features)
+
     return features_dist
 
 def load_features_distrib_doc(features_distrib_file, n_rows, n_cols, train_file, validation_file):
@@ -88,5 +86,5 @@ def load_features_distrib_doc(features_distrib_file, n_rows, n_cols, train_file,
     for line in open(features_distrib_file):
         doc, features = line.split(" ", 1)
         if doc in docs:
-            features_dist[qid][docno] = torch.Tensor(generate_freq_matrix(features, n_rows, n_cols))
+            features_dist[qid][docno] = json.loads(features)
     return features_dist 

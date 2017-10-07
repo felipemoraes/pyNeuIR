@@ -48,7 +48,7 @@ def load_training(training_set_file):
         qid, docs = line.strip().split(" ", 1)
         if not qid in qrels:
             qrels[qid] = {}
-        for doc in docs:
+        for doc in docs.split():
             qrels[qid][doc] = 1
             docnos.add(doc)
     return qrels, docnos
@@ -73,12 +73,11 @@ def main(argv):
         docids = docids_from_index(index, docnos)
         for qid in qrels:
             query_matrix = generate_query_sparse_matrix(token2id, topics[qid])
-            for label in qrels[qid]:
-                for docno in qrels[qid][label]:
-                    docid = docids[docno]
-                    doc_matrix = generate_doc_sparse_matrix(index, docid)
-                    binary_matrix = generate_binary_matrix(query_matrix, doc_matrix)
-                    f.write("{} {} {}\n".format(qid,docno,json.dumps(binary_matrix)))
+            for docno in qrels[qid][label]:
+                docid = docids[docno]
+                doc_matrix = generate_doc_sparse_matrix(index, docid)
+                binary_matrix = generate_binary_matrix(query_matrix, doc_matrix)
+                f.write("{} {} {}\n".format(qid,docno,json.dumps(binary_matrix)))
     
     f.close()
 
