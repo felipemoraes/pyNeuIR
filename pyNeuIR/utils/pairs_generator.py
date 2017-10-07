@@ -8,9 +8,14 @@ class PairsGenerator(Dataset):
         self.pairs = []
 
         for line in open(pairs_file):
-            tid, high_d, low_d = line.strip().split()
+            tid, high_d, low_d = line.strip().split(" ", 2)
+
             if tid in topics:
-                self.pairs.append((tid, high_d, low_d))
+                if len(low_d.split()) > 0:
+                    low1, low2, low3, low4 = low_d.split()
+                    self.pairs.append((tid, (high_d, low1, low2, low3, low4)))
+                else:
+                    self.pairs.append((tid, high_d, low_d))
         
         self.len = len(self.pairs)
         if sample > 0:

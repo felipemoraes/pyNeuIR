@@ -1,7 +1,6 @@
 import sys
-import pyndri
 import numpy as np
-
+import json
 from gensim.models.keyedvectors import KeyedVectors
 # Fixed seed for reproducibility
 np.random.seed(222)
@@ -56,6 +55,7 @@ def load_qrels(qrels_path):
         qrels[qid][label].append(docno)
         docnos.add(docno)
     return qrels, docnos
+
 
 
 def load_topics(topics_file, field_type):
