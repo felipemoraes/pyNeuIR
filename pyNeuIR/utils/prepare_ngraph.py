@@ -44,15 +44,13 @@ def get_top_ngraph(index, top_ngraph=2000):
 
 def ngraph_counterizer(ngraph, terms):
     counter = []
+    ngram_count = Counter()
     for i, term in enumerate(terms):
         ngrams = letter_ngrams(term)
-        ngram_count = Counter()
         for ngram in ngrams:
             if ngram in ngraph:
-                ngram_count[ngram] += 1
-        for ngram in ngram_count:
-            counter.append((ngraph[ngram], i, ngram_count[ngram]))
-    return counter
+                ngram_count[ngraph[ngram]] += 1
+    return ngram_count
 
 def load_training(training_set_file):
     queries = []
@@ -82,21 +80,27 @@ def main(argv):
     with pyndri.open(config["index"]) as index:
         token2id, id2token, id2df = index.get_dictionary()
         top_ngraphs = get_top_ngraph(index)
-        docids = docids_from_index(index, docnos)
-        f = open("query_ngraph_featurizer.txt", "w")
+        f = open("top2k_ngraph.txt", "w")
+        for top_ngraph in top_ngraphs:
+            f.write("{} {}\n".format(top_ngraph, top_ngraphs[top_ngraph]))
+        f.close()
+        
+        f = open("queries_term.txt", "w")
         for qid in qrels:
             query_matrix = []
             query = topics[qid]
-            query_terms = pyndri.tokenize(escape(query.lower()))
-            query_ngraph = ngraph_counterizer(top_ngraphs,query_terms)
-            f.write("{} {}\n".format(qid, json.dumps(query_ngraph)))
+            query_terms = [ term for term in pyndri.tokenize(escape(query.lower())) if term in token2id]
+            ids = [token2id[term] for term in query_terms]
+            f.write("{} {}\n".format(qid, " ".join(query_terms)))
         f.close()
-        f = open("doc_ngraph_featurizer.txt", "w")
+
+        docids = docids_from_index(index, docnos)
+        f = open("docs_term.txt", "w")
         for docno in docnos:
             docno, doc = index.document(docids[docno])
-            doc_terms = [ id2token[w] for w in doc if w > 0]
-            doc_ngraph = ngraph_counterizer(top_ngraphs,doc_terms)
-            f.write("{} {}\n".format(docno, json.dumps(doc_ngraph)))
+            doc = [w for w in doc if w >0]
+            doc_terms = [id2token[w] for w in doc]
+            f.write("{} {}\n".format(docno, " ".join(doc_terms)))
         f.close()
 
 if __name__=='__main__':

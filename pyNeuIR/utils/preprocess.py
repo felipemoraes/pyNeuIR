@@ -39,52 +39,32 @@ def load_idfs(queries_idfs_file, max_len):
         idfs[t] = pad(torch.FloatTensor(np.array(idfs[t])),max_len).unsqueeze(1)
     return idfs
 
-def to_binary_matrix(features, n_rows, n_cols):
-    binary_matrix = np.zeros((n_rows,n_rows))
-    for f in features:
-        binary_matrix[f[0], f[1]] = 1.0
-    return binary_matrix
+def to_binary_matrix(query_terms, doc_terms, n_rows, n_cols):
+    binary_matrix = np.zeros((n_rows,n_cols))
+    for doc_term, doc_pos in doc_terms.items():
+        if doc_pos >= n_rows:
+            continue
+        if doc_term in query_terms:
+            query_pos = query_terms[doc_term]
+            binary_matrix[doc_pos,query_pos] = 1
+    return torch.FloatTensor(binary_matrix)
 
-def to_freq_matrix(features, n_rows, n_cols):
-    freq_matrix = np.zeros((n_rows,n_rows))
-    for f in features:
-        freq_matrix[f[0], f[1]] = f[2]
-    return freq_matrix
+def letter_ngrams(word, n=5):
+    ngrams = []
+    word = "#" + word + "#"
+    for n_ in range(1,n+1):
+        for i in range(0,len(word)-n_+1):
+            ngrams.append(word[i:i+n_])
+    return ngrams
 
-def load_features_local(features_local_file, n_rows, n_cols, train_file, validation_file):
-    queries = [line.strip().split()[0] for line in open(train_file)]
-    queries.extend([line.strip().split()[0] for line in open(validation_file)])
-    queries = set(queries)
-    features_local = {}
-    for line in open(features_local_file):
-        qid, docno, features = line.split(" ", 2)
-        if qid in  queries:
-            if not qid in features_local:
-                features_local[qid] = {}
-            features_local[qid][docno] = json.loads(features)
-    return features_local
+def to_freq_matrix(ngraphs, terms, n_rows, n_cols):
+    freq_matrix = np.zeros((n_rows,n_cols))
+    for doc_term, doc_pos in terms.items():
+        ngrams = letter_ngrams(doc_term)
+        if doc_pos >= n_cols:
+            continue
+        for ngram in ngrams:
+            if ngram in ngraphs:
+                freq_matrix[ngraphs[ngram],doc_pos] += 1
+    return torch.FloatTensor(freq_matrix)
 
-def load_features_distrib_query(features_distrib_file, n_rows, n_cols, train_file, validation_file):
-    queries = [line.strip().split()[0] for line in open(train_file)]
-    queries.extend([line.strip().split()[0] for line in open(validation_file)])
-    queries = set(queries)
-
-    features_dist = {}
-    for line in open(features_distrib_file):
-        qid, features = line.split(" ", 1)
-        if qid in  queries:
-            features_dist[qid] = json.loads(features)
-
-    return features_dist
-
-def load_features_distrib_doc(features_distrib_file, n_rows, n_cols, train_file, validation_file):
-    docs = [line.strip().split()[1] for line in open(train_file)]
-    docs.extend([line.strip().split()[1] for line in open(validation_file)])
-    docs = set(docs)
-
-    features_dist = {}
-    for line in open(features_distrib_file):
-        doc, features = line.split(" ", 1)
-        if doc in docs:
-            features_dist[qid][docno] = json.loads(features)
-    return features_dist 

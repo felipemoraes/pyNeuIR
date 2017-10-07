@@ -49,6 +49,7 @@ class Duet(nn.Module):
         
         out_local = self.local_conv1(features_local).squeeze()
         out_local = F.tanh(out_local)
+        
         out_local = self.local_linear1(out_local.view(out_local.size(0), -1))
         out_local = self.local_dropout(out_local)
         out_local = self.local_linear3(out_local)
