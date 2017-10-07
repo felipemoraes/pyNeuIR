@@ -54,18 +54,29 @@ def ngraph_counterizer(ngraph, terms):
             counter.append((ngraph[ngram], i, ngram_count[ngram]))
     return counter
 
-
+def load_training(training_set_file):
+    queries = []
+    docs = []
+    for line in open(training_set_file):
+        qid, doc = line.strip().split(" ", 1)
+        queries.append(qid)
+        docs.extend(doc.split())
+    return set(queries), set(docs)
 def main(argv):
 
     if len(config) < 4:
         print("Invalid configuration file.")
         sys.exit(0)
+    
+    training_set_file = argv[1]
 
     print("Loading topics")
     topics = load_topics(config["topics"], config["type"])
     topics = dict(topics)
     print("Loading qrels")
-    qrels, docnos = load_qrels(config["qrels"])
+    qrels, docnos = load_training(training_set_file)
+    print(len(docnos))
+    
 
     print("Generating ngraph features")
     with pyndri.open(config["index"]) as index:

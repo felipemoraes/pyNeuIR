@@ -40,6 +40,19 @@ def generate_binary_matrix(query_matrix, doc_matrix):
             binary_matrix.append((doc_pos,query_pos))
     return binary_matrix
 
+
+def load_training(training_set_file):
+    qrels = {}
+    docnos = set()
+    for line in open(training_set_file):
+        qid, docs = line.strip().split(" ", 1)
+        if not qid in qrels:
+            qrels[qid] = {}
+        for doc in docs:
+            qrels[qid][doc] = 1
+            docnos.add(doc)
+    return qrels, docnos
+
 def main(argv):
 
     if len(config) < 4:
@@ -50,7 +63,8 @@ def main(argv):
     topics = load_topics(config["topics"], config["type"])
     topics = dict(topics)
     print("Loading qrels")
-    qrels, docnos = load_qrels(config["qrels"])
+    training_set_file = argv[1]
+    qrels, docnos = load_training(training_set_file)
 
     print("Generating local features")
     f = open("features_local.txt", "w")
