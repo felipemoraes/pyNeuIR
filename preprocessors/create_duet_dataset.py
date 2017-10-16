@@ -114,12 +114,6 @@ def main():
                 f.write("{} {}\n".format(str(term_id), " ".join(ngraphs)))
             f.close()
 
-        with open(args.o + "/terms.txt", "w") as f:
-            for term_id in id2token:
-                term = id2token[term_id]
-                f.write("{} {}\n".format(str(term_id), term))
-            f.close()
-
         print("Got top ngraphs.")
 
         def get_query_obj(qid):
