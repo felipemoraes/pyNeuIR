@@ -77,8 +77,6 @@ def print_histograms(index_path, queries_tvs, docnos, queries_docs, embeddings, 
             for docno in docids_qid:
                 docno, doc = index.document(docids[docno])
                 doc_tvs = [embeddings(id2token[w]) for w in doc if w > 0]
-            
-                
     
                 histograms = matching_histogram_mapping(query_tvs, doc_tvs, 30)
                 
@@ -88,6 +86,8 @@ def print_histograms(index_path, queries_tvs, docnos, queries_docs, embeddings, 
         
         if count % 10 == 0:
             print("Processed {} queries.".format(count))
+
+
 def load_test(test_file):
     run = {}
     docnos = set()
