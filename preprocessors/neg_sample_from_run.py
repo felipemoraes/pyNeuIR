@@ -37,7 +37,7 @@ def main():
             continue
         # Get relevants for query
         rels = set()
-        if qid != previous_qid:
+        if qid != previous_qid and previous_qid != "-" :
 
             for label in qrels[qid]:
                 if label != "0":
@@ -50,8 +50,11 @@ def main():
                 sample_neg_docs = " ".join(sample_neg_docs)
                 f.write("{} {} {}\n".format(qid, rel_doc, sample_neg_docs))
             results = {doc: float(score)}
+        elif previous_qid == "-":
+            results = {doc: float(score)}
         else:
             results[doc] = float(score)
+
     f.close()
 
 if __name__ == "__main__":
