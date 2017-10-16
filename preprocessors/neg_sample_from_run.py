@@ -46,7 +46,11 @@ def main():
             # Get top 100 non rel docs
             top_nonrels = [doc for doc in sorted(results, key=results.get, reverse=True) if doc not in rels][:top]
             for rel_doc in rels:
-                sample_neg_docs = np.random.choice(top_nonrels, n, replace=False)
+                if len(top_nonrels) < n:
+                    sample_neg_docs = np.random.choice(top_nonrels, n-len(top_nonrels), replace=False)
+                    sample_neg_docs.extend(top_nonrels)
+                else:
+                    sample_neg_docs = np.random.choice(top_nonrels, n, replace=False)
                 sample_neg_docs = " ".join(sample_neg_docs)
                 f.write("{} {} {}\n".format(qid, rel_doc, sample_neg_docs))
             results = {doc: float(score)}
@@ -54,7 +58,7 @@ def main():
             results = {doc: float(score)}
         else:
             results[doc] = float(score)
-
+        previous_qid = qid
     f.close()
 
 if __name__ == "__main__":
