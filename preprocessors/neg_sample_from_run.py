@@ -46,11 +46,8 @@ def main():
             # Get top 100 non rel docs
             top_nonrels = [doc for doc in sorted(results, key=results.get, reverse=True) if doc not in rels][:top]
             for rel_doc in rels:
-                if len(top_nonrels) == 0:
-                    break
                 if len(top_nonrels) < n:
-                    sample_neg_docs = np.random.choice(top_nonrels, n-len(top_nonrels), replace=False)
-                    sample_neg_docs.extend(top_nonrels)
+                    break
                 elif len(top_nonrels) == n:
                     sample_neg_docs = top_nonrels
                 else:
