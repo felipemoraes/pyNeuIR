@@ -51,6 +51,8 @@ def main():
                 if len(top_nonrels) < n:
                     sample_neg_docs = np.random.choice(top_nonrels, n-len(top_nonrels), replace=False)
                     sample_neg_docs.extend(top_nonrels)
+                elif len(top_nonrels) == n:
+                    sample_neg_docs = top_nonrels
                 else:
                     sample_neg_docs = np.random.choice(top_nonrels, n, replace=False)
                 sample_neg_docs = " ".join(sample_neg_docs)
