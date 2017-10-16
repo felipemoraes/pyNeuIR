@@ -11,6 +11,8 @@ def main():
 
     parser.add_argument('-qrel')
 
+    parser.add_argument('-p', type=int)
+
     parser.add_argument('-n', type=int)
 
     parser.add_argument('-top', type=int)
@@ -45,6 +47,8 @@ def main():
                         rels.add(doc)
             # Get top 100 non rel docs
             top_nonrels = [doc for doc in sorted(results, key=results.get, reverse=True) if doc not in rels][:top]
+            if len(rels) > p:
+                rels = np.random.choice(rels, p, replace=False)
             for rel_doc in rels:
                 if len(top_nonrels) < n:
                     break
