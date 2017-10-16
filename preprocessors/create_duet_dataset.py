@@ -121,8 +121,6 @@ def main():
             f.close()
 
         print("Got top ngraphs.")
-        queries_data = {}
-        docs_data = {}
 
         def get_query_obj(qid):
             query = queries[qid]
@@ -147,6 +145,8 @@ def main():
 
                 for line in open(args.pairs):
                     qid, docs = line.strip().split(" ", 1)
+                    if qid not in queries:
+                        continue
                     docs = docs.split()
                     query_obj = get_query_obj(qid)
                     f.write("{}\t{}\t{}\n".format(qid, query_obj, "\t".join([get_doc_obj(docids,d) for d in docs])))
