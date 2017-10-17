@@ -35,6 +35,7 @@ def main():
 
     # Here documents with the lowest label (e.g, 0) should be ranked lower
     previous_qid = "-"
+    c = 0
     for line in open(args.run):
         qid, _, doc, _, score, _ = line.strip().split()
         if qid not in qrels:
@@ -42,7 +43,7 @@ def main():
         # Get relevants for query
         rels = set()
         if qid != previous_qid and previous_qid != "-" :
-            
+            c += 1   
             for label in qrels[qid]:
                 if label != "0":
                     for doc in qrels[qid][label]:
@@ -50,14 +51,17 @@ def main():
             # Get top 100 non rel docs
             top_nonrels = [doc for doc in sorted(results, key=results.get, reverse=True) if doc not in rels][:top]
             rels = list(rels)
+            if len(top_nonrels) == 0:
+                results = {doc: float(score)}
+                break
             if len(rels) > p:
                 rels = np.random.choice(rels, p, replace=False)
             for rel_doc in rels:
-                if len(qrels[qid][lowest_label]) < n:
+                if len(top_nonrels) < n:
                     sample_neg_docs = top_nonrels
                     r = n - len(sample_neg_docs)
                     for i in range(r):
-                        sample_neg_docs.append(np.random.choice(top_nonrels, 1))
+                        sample_neg_docs.append(np.random.choice(top_nonrels, 1)[0])
                 else:
                     sample_neg_docs = np.random.choice(top_nonrels, n, replace=False)
 
@@ -69,6 +73,7 @@ def main():
         else:
             results[doc] = float(score)
         previous_qid = qid
+    print(c)
     f.close()
 
 if __name__ == "__main__":

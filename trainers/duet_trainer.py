@@ -41,9 +41,9 @@ def trainer(dataloader, save_dir, experiment_name, num_docs, model_type="duet"):
     
     for epoch in range(c['epoch']):
         train_loss = []
-        t_start = time.time()
+        time_epoch = time.time()
+        time_batch = time.time()
         for i, data in enumerate(dataloader, 0):
-            time_start = time.time()
 
             # Initialize variables
             features_local = None
@@ -70,10 +70,14 @@ def trainer(dataloader, save_dir, experiment_name, num_docs, model_type="duet"):
             loss.backward()
             optimizer.step()
             train_loss.append(loss.data)
+            if len(train_loss) % 100 == 0:
+                time_training = time.time() - time_batch
 
-            time_training = time.time() - time_start
-            print('Epoch: {} Minibatch: {} \tTraining Loss: {}\tTraining Time: {}'.format(epoch, i, np.mean(train_loss).cpu().numpy()[0],time_training))
-        print('Epoch: {} Training Time: {}'.format(epoch, time.time()-t_start))
+                print('Epoch: {} Minibatch: {} \tTraining Loss: {}\tTraining Time: {}'.format(epoch, i+1, np.mean(train_loss).cpu().numpy()[0],time_training))
+                time_batch = time.time()
+
+        print('Epoch: {} Training Loss: {}\tTraining Time: {}'.format(epoch, np.mean(train_loss).cpu().numpy()[0], time.time()-time_epoch))
+
         torch.save(
              duet.state_dict(),
              open(os.path.join(
@@ -105,7 +109,7 @@ def main():
     if not os.path.exists(args.o):
         os.makedirs(args.o)
     
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=10)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=16, shuffle=True, num_workers=8)
     trainer(dataloader, args.o, args.name, 5, args.type)
     
 main()

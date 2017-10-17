@@ -108,7 +108,7 @@ def main():
         top_ngraphs = get_top_ngraph(index)
         with open(args.o + "/top_ngraphs.txt", "w") as f:
             for ngraph in top_ngraphs:
-                 f.write("{} {}\n".format(top_ngraphs[ngraph], ngraph))       
+                 f.write("{} {}\n".format(top_ngraphs[ngraph], ngraph.encode("utf-8")))       
             f.close()
         with open(args.o + "/ngraphs.txt", "w") as f:
             for term_id in id2token:
