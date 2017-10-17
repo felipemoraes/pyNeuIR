@@ -29,9 +29,14 @@ def main():
         lowest_label = label_list[-1]
         for hidx, high_label in enumerate(label_list[:-1]):
             for rel_doc in qrels[qid][high_label]:
+                sample_neg_docs = []
                 if len(qrels[qid][lowest_label]) < n:
-                    continue
-                sample_neg_docs = np.random.choice(qrels[qid][lowest_label], n, replace=False)
+                    sample_neg_docs = qrels[qid][lowest_label]
+                    r = n - len(sample_neg_docs)
+                    for i in range(r):
+                        sample_neg_docs.append(np.random.choice(qrels[qid][lowest_label], 1))
+                else:
+                    sample_neg_docs = np.random.choice(qrels[qid][lowest_label], n, replace=False)
                 sample_neg_docs = " ".join(sample_neg_docs)
                 f.write("{} {} {}\n".format(qid, rel_doc, sample_neg_docs))
     f.close()

@@ -23,14 +23,15 @@ class DuetDataset(Dataset):
 
         print("Loaded {} instances.".format(len(self.train_instances)))
         np.random.shuffle(self.train_instances)
-    
-        lines = [line.strip().split(" ", 1) for line in open(dataset_folder+"ngraphs.txt")]
-        self.ngraphs = [[]]*(len(lines)+1)
-        for line in lines:
-            self.ngraphs[int(line[0])] = [int(v) for v in line[1].split()] 
-        
         self.len = len(self.train_instances)
-        print("Loaded term ngraphs")
+        if model_type == "duet" or model_type == "distrib":
+            lines = [line.strip().split(" ", 1) for line in open(dataset_folder+"ngraphs.txt")]
+            self.ngraphs = [[]]*(len(lines)+1)
+            for line in lines:
+                self.ngraphs[int(line[0])] = [int(v) for v in line[1].split()] 
+        
+        
+            print("Loaded term ngraphs")
 
     def get_features_local(self,query_terms, docs_terms):
         num_docs = len(docs_terms)

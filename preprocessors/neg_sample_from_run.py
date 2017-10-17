@@ -53,12 +53,14 @@ def main():
             if len(rels) > p:
                 rels = np.random.choice(rels, p, replace=False)
             for rel_doc in rels:
-                if len(top_nonrels) < n:
-                    break
-                elif len(top_nonrels) == n:
+                if len(qrels[qid][lowest_label]) < n:
                     sample_neg_docs = top_nonrels
+                    r = n - len(sample_neg_docs)
+                    for i in range(r):
+                        sample_neg_docs.append(np.random.choice(top_nonrels, 1))
                 else:
                     sample_neg_docs = np.random.choice(top_nonrels, n, replace=False)
+
                 sample_neg_docs = " ".join(sample_neg_docs)
                 f.write("{} {} {}\n".format(qid, rel_doc, sample_neg_docs))
             results = {doc: float(score)}

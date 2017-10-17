@@ -2,7 +2,6 @@
 
 import argparse
 import pyndri
-import ujson as json
 import os
 from collections import Counter
 from utils import escape
@@ -12,7 +11,7 @@ def get_top_ngraphs(ngraphs, max_ngraph_len, word):
     token = '#' + word + '#'
     token_len = len(token)
     for i in range(token_len):
-        for j in range(0, max_ngraph_len):
+        for j in range(1, max_ngraph_len+1):
             if i+j < token_len:
                 ngraph_idx = ngraphs.get(token[i:i+j])
                 if ngraph_idx != None:
@@ -107,6 +106,10 @@ def main():
     with pyndri.open(args.index) as index:
         token2id, id2token, id2df = index.get_dictionary()
         top_ngraphs = get_top_ngraph(index)
+        with open(args.o + "/top_ngraphs.txt", "w") as f:
+            for ngraph in top_ngraphs:
+                 f.write("{} {}\n".format(top_ngraphs[ngraph], ngraph))       
+            f.close()
         with open(args.o + "/ngraphs.txt", "w") as f:
             for term_id in id2token:
                 term = id2token[term_id]
