@@ -28,8 +28,8 @@ import time
 
 class TestDataset(Dataset):
 
-    def __init__(self, test_instances, model_type="duet", 
-            max_query_words=10, max_doc_words=1000, num_ngraphs=2000):
+    def __init__(self, test_instances, ngraphs = None,  model_type="duet", 
+                max_query_words=10, max_doc_words=1000, num_ngraphs=2000):
 
         self.model_type = model_type
 
@@ -37,17 +37,12 @@ class TestDataset(Dataset):
         self.max_doc_words = max_doc_words
         self.num_ngraphs = num_ngraphs
 
-        self.f_baseline = open(dataset_folder+"test_data.txt") 
-
-        self.test_instances = [line.strip().split("\t") for line in open(dataset_folder+"train_data.txt")]
+        self.test_instances = [line.strip().split("\t") for line in test_instances]
         print("Loaded {} instances.".format(len(self.test_instances)))
         self.len = len(self.test_instances)
 
         if model_type == "duet" or model_type == "distrib":
-            lines = [line.strip().split(" ", 1) for line in open(dataset_folder+"ngraphs.txt")]
-            self.ngraphs = [[]]*(len(lines)+1)
-            for line in lines:
-                self.ngraphs[int(line[0])] = [int(v) for v in line[1].split()] 
+            self.ngraphs = ngraphs
             print("Loaded term ngraphs")
         
        
@@ -112,6 +107,7 @@ def to_cuda(variable):
 
 def get_scores(dataloader):
     scores = []
+    num_docs = 1
     for i, data in enumerate(dataloader, 0):
         time_start = time.time()
 
@@ -134,14 +130,18 @@ def get_scores(dataloader):
         
 
         doc_scores = duet(features_local, features_distrib_query, features_distrib_doc, num_docs)
+        doc_scores = num_docs.data.cpu().numpy()
         for i, score in enumerate(scores):
             scores.append((queries[i],docnos[i], score))
-
     return scores
 
 
 def reranker(dataset_dir, save_dir, experiment_name, model_type="duet"):
-    
+    lines = [line.strip().split(" ", 1) for line in open(dataset_dir+"ngraphs.txt")]
+    ngraphs = [[]]*(len(lines)+1)
+    for line in lines:
+    ngraphs[int(line[0])] = [int(v) for v in line[1].split()] 
+
     duet = Duet(c["n_q"],c["n_d"], c["m_d"], model_type)
     if use_cuda:
         duet = duet.cuda()
@@ -152,8 +152,8 @@ def reranker(dataset_dir, save_dir, experiment_name, model_type="duet"):
     f_run = open(save_dir + experiment_name, "w")
     test_instances = []
     for line in f_baseline:
-        if len(test_instances) == 100000:
-            testset = DuetDataset(f_baseline, args.type)
+        if len(test_instances) == 50000:
+            testset = DuetDataset(f_baseline, ngraphs, model_type)
             dataloader = torch.utils.data.DataLoader(testset, batch_size=8, num_workers=10)
             scores = get_scores(dataloader)
             for score in scores:
@@ -162,13 +162,13 @@ def reranker(dataset_dir, save_dir, experiment_name, model_type="duet"):
         test_instances.append(line)
 
     if len(test_instances) > 0:
-        testset = DuetDataset(f_baseline, args.type)
+        testset = DuetDataset(f_baseline, ngraphs, model_type)
         dataloader = torch.utils.data.DataLoader(testset, batch_size=8, num_workers=10)
         scores = get_scores(dataloader)
         for score in scores:
             f_run.write("{} Q0 {} 1 {} {}".format(score[0], score[1], score[2], experiment_name))
     f.close()
-    
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -186,12 +186,9 @@ def main():
 
     print("Loading dataset.")
 
-    dataset = DuetDataset(args.dataset, args.test, args.type, test=True)
-
     if not os.path.exists(args.o):
         os.makedirs(args.o)
     
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, num_workers=10)
-    trainer(dataloader, args.o, args.name, 5, args.type)
+    reranker(dataloader, args.o, args.name, args.type)
     
 main()
