@@ -136,15 +136,17 @@ def get_scores(dataloader):
     return scores
 
 
-def reranker(dataset_dir, save_dir, experiment_name, model_type="duet"):
+def reranker(model_file, dataset_dir, save_dir, experiment_name, model_type="duet"):
     lines = [line.strip().split(" ", 1) for line in open(dataset_dir+"ngraphs.txt")]
     ngraphs = [[]]*(len(lines)+1)
     for line in lines:
     ngraphs[int(line[0])] = [int(v) for v in line[1].split()] 
 
     duet = Duet(c["n_q"],c["n_d"], c["m_d"], model_type)
+    duet.load_state_dict(torch.load(model_file))
     if use_cuda:
         duet = duet.cuda()
+    
 
     t_start = time.time()
 
@@ -172,6 +174,8 @@ def reranker(dataset_dir, save_dir, experiment_name, model_type="duet"):
 def main():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-model', help="Model weights")
+
     parser.add_argument('-dataset', help="Dataset folder")
 
     parser.add_argument('-test', help="Test queries")
@@ -189,6 +193,6 @@ def main():
     if not os.path.exists(args.o):
         os.makedirs(args.o)
     
-    reranker(dataloader, args.o, args.name, args.type)
+    reranker(args.model, dataloader, args.o, args.name, args.type)
     
 main()
