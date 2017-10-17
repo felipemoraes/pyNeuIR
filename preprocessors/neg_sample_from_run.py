@@ -25,6 +25,8 @@ def main():
    
     n = args.n
 
+    p = args.p
+
     top = args.top
 
     f = open(args.o, "w")
@@ -40,13 +42,14 @@ def main():
         # Get relevants for query
         rels = set()
         if qid != previous_qid and previous_qid != "-" :
-
+            
             for label in qrels[qid]:
                 if label != "0":
                     for doc in qrels[qid][label]:
                         rels.add(doc)
             # Get top 100 non rel docs
             top_nonrels = [doc for doc in sorted(results, key=results.get, reverse=True) if doc not in rels][:top]
+            rels = list(rels)
             if len(rels) > p:
                 rels = np.random.choice(rels, p, replace=False)
             for rel_doc in rels:

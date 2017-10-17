@@ -15,11 +15,13 @@ class DuetDataset(Dataset):
         self.num_ngraphs = num_ngraphs
 
         self.train_queries = set([line.split(" ",1)[0] for line in open(train_file)])
+        print("Loaded queries")
         
         self.train_instances = [line.strip().split("\t") for line in open(dataset_folder+"train_data.txt")]
 
         self.train_instances = [[ list(map(int, vec.split())) for vec in instance[1:]] for instance in self.train_instances if instance[0] in self.train_queries]
 
+        print("Loaded {} instances.".format(len(self.train_instances)))
         np.random.shuffle(self.train_instances)
     
         lines = [line.strip().split(" ", 1) for line in open(dataset_folder+"ngraphs.txt")]
@@ -28,6 +30,7 @@ class DuetDataset(Dataset):
             self.ngraphs[int(line[0])] = [int(v) for v in line[1].split()] 
         
         self.len = len(self.train_instances)
+        print("Loaded term ngraphs")
 
     def get_features_local(self,query_terms, docs_terms):
         num_docs = len(docs_terms)

@@ -25,7 +25,7 @@ def get_token_ngraphs(token, max_ngraph_len=5):
     token_len = len(token)
     token_ngraphs = []
     for i in range(token_len):
-        for j in range(0, max_ngraph_len):
+        for j in range(1, max_ngraph_len+1):
             if i+j < token_len:
                 token_ngraphs.append(token[i:i+j])
     return token_ngraphs

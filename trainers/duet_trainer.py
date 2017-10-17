@@ -41,6 +41,7 @@ def trainer(dataloader, save_dir, experiment_name, num_docs, model_type="duet"):
     
     for epoch in range(c['epoch']):
         train_loss = []
+        t_start = time.time()
         for i, data in enumerate(dataloader, 0):
             time_start = time.time()
 
@@ -60,7 +61,7 @@ def trainer(dataloader, save_dir, experiment_name, num_docs, model_type="duet"):
                 features_distrib_query = to_cuda(Variable(features_distrib_query).unsqueeze(1))
                 features_distrib_doc = [to_cuda(Variable(features_distrib_doc[:,i,:,:]).unsqueeze(1)) for i in range(num_docs)]
             
-            labels = Variable(data["labels"].type(torch.LongTensor), requires_grad=False)
+            labels = to_cuda(Variable(data["labels"].type(torch.LongTensor), requires_grad=False))
 
             output = duet(features_local, features_distrib_query, features_distrib_doc, num_docs)
 
@@ -71,8 +72,8 @@ def trainer(dataloader, save_dir, experiment_name, num_docs, model_type="duet"):
             train_loss.append(loss.data)
 
             time_training = time.time() - time_start
-            print('Epoch : {} Minibatch: {} \tTraining Loss: {}\tTraining Time: {}'.format(epoch, i, np.mean(train_loss).cpu().numpy()[0],time_training))
-        
+            print('Epoch: {} Minibatch: {} \tTraining Loss: {}\tTraining Time: {}'.format(epoch, i, np.mean(train_loss).cpu().numpy()[0],time_training))
+        print('Epoch: {} Training Time: {}'.format(epoch, time.time()-t_start))
         torch.save(
              duet.state_dict(),
              open(os.path.join(
@@ -104,7 +105,7 @@ def main():
     if not os.path.exists(args.o):
         os.makedirs(args.o)
     
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=2)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=10)
     trainer(dataloader, args.o, args.name, 5, args.type)
     
 main()
