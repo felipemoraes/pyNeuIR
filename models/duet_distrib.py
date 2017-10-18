@@ -50,7 +50,6 @@ class DuetDistrib(nn.Module):
         out_embed_q = self.embed_q_conv(features_distrib_query)
         out_embed_q = F.tanh(out_embed_q)
         out_embed_q = self.embed_q_max_pool(out_embed_q).squeeze()
-        out_embed_q = F.tanh(out_embed_q)
         out_embed_q = self.embed_q_linear(out_embed_q)
         out_embed_q = F.tanh(out_embed_q)
         return out_embed_q
@@ -59,16 +58,13 @@ class DuetDistrib(nn.Module):
         out_embed_d = self.embed_d_conv1(features_distrib_doc)
         out_embed_d = F.tanh(out_embed_d)
         out_embed_d = self.embed_d_max_pool(out_embed_d)
-        out_embed_d = F.tanh(out_embed_d)
         out_embed_d = out_embed_d.squeeze()
-        out_embed_d = self.embed_d_conv2(out_embed_d.unsqueeze(1)).squeeze()
+        out_embed_d = self.embed_d_conv2(out_embed_d.unsqueeze(1))
         out_embed_d = F.tanh(out_embed_d).squeeze()
-        out_embed_d = out_embed_d.permute(0,2,1)
         return out_embed_d
     
     def forward_once(self, out_embed_q, out_embed_d):
-        out_distrib = out_embed_q.permute(1,0)*out_embed_d.permute(1,2,0)
-        out_distrib = out_distrib.permute(2,1,0).contiguous()
+        out_distrib = out_embed_q.unsqueeze(2).expand_as(out_embed_d) * out_embed_d
         out_distrib = out_distrib.view(out_distrib.size(0),-1) 
         out_distrib = self.distrib_linear1(out_distrib)
         out_distrib = F.tanh(out_distrib)

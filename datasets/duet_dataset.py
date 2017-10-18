@@ -1,7 +1,6 @@
 from torch.utils.data import Dataset
 import numpy as np
 np.random.seed(230)
-import time
 
 class DuetDataset(Dataset):
 
